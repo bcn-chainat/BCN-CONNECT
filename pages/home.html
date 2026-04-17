@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระเบียบปฏิบัติการรักษาความปลอดภัยด้านสารสนเทศ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap');
+        body { font-family: 'Sarabun', sans-serif; }
+        
+        .hero-gradient {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 pb-12">
+
+    <!-- Hero Section -->
+    <header class="hero-gradient text-white py-16 px-6 text-center mb-12 shadow-inner">
+        <div class="max-w-4xl mx-auto">
+            <i class="fas fa-shield-alt text-6xl mb-6 text-blue-400"></i>
+            <h1 class="text-3xl md:text-4xl font-bold mb-4">ระเบียบปฏิบัติในการรักษาความปลอดภัย</h1>
+            <p class="text-xl text-blue-100 font-light uppercase tracking-widest">ด้านสารสนเทศ (IT Security Policy)</p>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            
+            <!-- Section 1: Password & Accounts -->
+            <section class="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 card-hover transition-all duration-300">
+                <div class="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 text-3xl mb-6">
+                    <i class="fas fa-user-lock"></i>
+                </div>
+                <h2 class="text-xl font-bold text-slate-900 mb-6 flex items-center">
+                    <span class="bg-blue-600 text-white w-7 h-7 rounded-full inline-flex items-center justify-center text-sm mr-3">1</span>
+                    การจัดการรหัสผ่านและบัญชี
+                </h2>
+                <ul class="space-y-4">
+                    <li class="flex gap-4">
+                        <i class="fas fa-desktop text-slate-400 mt-1"></i>
+                        <p class="text-sm"><span class="font-semibold block text-slate-700">ล็อกหน้าจอ:</span> หากลุกออกจากโต๊ะ ให้กดปุ่ม <kbd class="px-2 py-1 bg-slate-100 rounded text-xs">Windows + L</kbd></p>
+                    </li>
+                    <li class="flex gap-4">
+                        <i class="fas fa-key text-slate-400 mt-1"></i>
+                        <p class="text-sm"><span class="font-semibold block text-slate-700">รหัสผ่านที่ปลอดภัย:</span> ตั้งให้คาดเดายาก ไม่ใช้ข้อมูลส่วนตัว</p>
+                    </li>
+                    <li class="flex gap-4">
+                        <i class="fas fa-fingerprint text-slate-400 mt-1"></i>
+                        <p class="text-sm"><span class="font-semibold block text-slate-700">เปิดใช้งาน MFA:</span> ใช้การยืนยันตัวตนหลายขั้นตอน</p>
+                    </li>
+                    <li class="flex gap-4">
+                        <i class="fas fa-ban text-red-400 mt-1"></i>
+                        <p class="text-sm font-semibold text-red-600">ห้ามแชร์บัญชีผู้ใช้และรหัสผ่านโดยเด็ดขาด</p>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- Section 2: Devices & Network -->
+            <section class="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 card-hover transition-all duration-300">
+                <div class="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 text-3xl mb-6">
+                    <i class="fas fa-network-wired"></i>
+                </div>
+                <h2 class="text-xl font-bold text-slate-900 mb-6 flex items-center">
+                    <span class="bg-indigo-600 text-white w-7 h-7 rounded-full inline-flex items-center justify-center text-sm mr-3">2</span>
+                    การใช้อุปกรณ์และเครือข่าย
+                </h2>
+                <ul class="space-y-4">
+                    <li class="flex gap-4">
+                        <i class="fas fa-download text-slate-400 mt-1"></i>
+                        <p class="text-sm"><span class="font-semibold block text-slate-700">การติดตั้งโปรแกรม:</span> ไม่อนุญาตให้ติดตั้งเองโดยไม่เกี่ยวข้องกับงาน</p>
+                    </li>
+                    <li class="flex gap-4">
+                        <i class="fas fa-usb text-slate-400 mt-1"></i>
+                        <p class="text-sm"><span class="font-semibold block text-slate-700">ระวังอุปกรณ์ภายนอก:</span> ห้ามเสียบ Flash Drive ที่ไม่รู้จัก</p>
+                    </li>
+                    <li class="flex gap-4">
+                        <i class="fas fa-wifi text-slate-400 mt-1"></i>
+                        <p class="text-sm"><span class="font-semibold block text-slate-700">เชื่อมต่อปลอดภัย:</span> ห้ามเชื่อมต่อ WiFi สาธารณะที่ไม่น่าเชื่อถือ</p>
+                    </li>
+                    <li class="flex gap-4">
+                        <i class="fas fa-sync text-slate-400 mt-1"></i>
+                        <p class="text-sm font-semibold text-slate-700 italic">อัปเดตซอฟต์แวร์และโปรแกรมสม่ำเสมอ</p>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- Section 3: Online Threats -->
+            <section class="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 card-hover transition-all duration-300">
+                <div class="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600 text-3xl mb-6">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <h2 class="text-xl font-bold text-slate-900 mb-6 flex items-center">
+                    <span class="bg-amber-600 text-white w-7 h-7 rounded-full inline-flex items-center justify-center text-sm mr-3">3</span>
+                    การป้องกันภัยคุกคาม
+                </h2>
+                <ul class="space-y-4">
+                    <li class="flex gap-4">
+                        <i class="fas fa-envelope-open-text text-slate-400 mt-1"></i>
+                        <p class="text-sm"><span class="font-semibold block text-slate-700">อีเมลและลิงก์ปลอม:</span> อย่าคลิกหรือดาวน์โหลดไฟล์จากอีเมลที่น่าสงสัย</p>
+                    </li>
+                    <li class="flex gap-4">
+                        <i class="fas fa-search-location text-slate-400 mt-1"></i>
+                        <p class="text-sm"><span class="font-semibold block text-slate-700">ตรวจสอบแหล่งที่มา:</span> ตรวจสอบให้แน่ใจว่าไฟล์มาจากแหล่งที่เชื่อถือได้</p>
+                    </li>
+                </ul>
+                <div class="mt-8 p-4 bg-amber-50 rounded-2xl border border-amber-100">
+                    <p class="text-xs text-amber-800 leading-relaxed">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        พบสิ่งผิดปกติ โปรดแจ้งฝ่ายไอทีทันที
+                    </p>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <footer class="text-center mt-12 text-slate-400 text-xs uppercase tracking-widest">
+        &copy; 2026 Information Security Policy - Internal Use Only
+    </footer>
+
+</body>
+</html>

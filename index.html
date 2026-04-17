@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Main Shell Interface</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap');
+        
+        body {
+            font-family: 'Sarabun', sans-serif;
+            overflow: hidden;
+        }
+
+        .iframe-container {
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 64px);
+            background: #f8fafc;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            transition: opacity 0.3s ease;
+        }
+
+        #sidebar {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @media (max-width: 767px) {
+            #sidebar {
+                transform: translateX(-100%);
+                position: fixed;
+                height: 100%;
+                z-index: 60;
+            }
+            #sidebar.sidebar-open {
+                transform: translateX(0);
+            }
+        }
+
+        #sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(2px);
+            z-index: 50;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        #sidebar-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .loader-wrapper, .auth-overlay, .onboarding-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(4px);
+            z-index: 40;
+        }
+
+        .hidden-element { display: none !important; }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* Smooth inputs */
+        input, select {
+            @apply border border-gray-200 px-4 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <div class="flex h-screen overflow-hidden">
+        
+        <!-- Sidebar -->
+        <aside id="sidebar" class="w-64 bg-slate-900 text-white flex flex-col h-full border-r border-slate-800 md:translate-x-0">
+            <div class="flex items-center justify-between h-16 px-6 bg-slate-800 flex-shrink-0">
+                <span class="text-xl font-bold tracking-wider">BCN CONNECT</span>
+                <button onclick="toggleSidebar()" class="md:hidden text-gray-400 hover:text-white p-2">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            
+            <nav id="menu-container" class="mt-6 px-4 space-y-2 flex-grow overflow-y-auto pb-20">
+                <a href="javascript:void(0)" onclick="navigateTo('pages/home.html', this)" data-protected="false" class="nav-item flex items-center px-4 py-3 bg-blue-600 text-white rounded-lg transition-all">
+                    <i class="fas fa-home w-6"></i>
+                    <span>หน้าแรก</span>
+                </a>
+
+                <a href="javascript:void(0)" onclick="navigateTo('pages/booking.html', this)" data-protected="true" class="nav-item flex items-center px-4 py-3 text-gray-400 hover:bg-slate-800 hover:text-white rounded-lg">
+                    <i class="fas fa-calendar-day w-6"></i>
+                    <span>ขอใช้ห้อง</span>
+                </a>
+                <a href="javascript:void(0)" onclick="navigateTo('pages/inventory_catalog.html', this)" data-protected="true" class="nav-item flex items-center px-4 py-3 text-gray-400 hover:bg-slate-800 hover:text-white rounded-lg">
+                    <i class="fas fa-dolly w-6"></i>
+                    <span>ยืมอุปกรณ์</span>
+                </a>
+                <a href="javascript:void(0)" onclick="navigateTo('pages/supplies_catalog.html', this)" data-protected="true" class="nav-item flex items-center px-4 py-3 text-gray-400 hover:bg-slate-800 hover:text-white rounded-lg">
+                    <i class="fas fa-basket-shopping w-6"></i>
+                    <span>เบิกวัสดุ</span>
+                </a>
+
+                <div class="pt-4 pb-2 px-4 text-xs font-semibold text-gray-500 uppercase tracking-widest">ส่วนผู้ดูแลระบบ</div>
+
+                <a href="javascript:void(0)" onclick="navigateTo('pages/admin_booking.html', this)" data-protected="true" class="nav-item flex items-center px-4 py-3 text-gray-400 hover:bg-slate-800 hover:text-white rounded-lg">
+                    <i class="fas fa-list-check w-6"></i>
+                    <span>อนุมัติขอใช้ห้อง</span>
+                </a>
+                <a href="javascript:void(0)" onclick="navigateTo('pages/rooms_manager.html', this)" data-protected="true" class="nav-item flex items-center px-4 py-3 text-gray-400 hover:bg-slate-800 hover:text-white rounded-lg">
+                    <i class="fas fa-list-check w-6"></i>
+                    <span>ข้อมูลห้อง</span>
+                </a>
+                <a href="javascript:void(0)" onclick="navigateTo('pages/inventory_manager.html', this)" data-protected="true" class="nav-item flex items-center px-4 py-3 text-gray-400 hover:bg-slate-800 hover:text-white rounded-lg">
+                    <i class="fas fa-list-check w-6"></i>
+                    <span>ข้อมูลครุภัณฑ์</span>
+                </a>
+                <a href="javascript:void(0)" onclick="navigateTo('pages/supplies_manager.html', this)" data-protected="true" class="nav-item flex items-center px-4 py-3 text-gray-400 hover:bg-slate-800 hover:text-white rounded-lg">
+                    <i class="fas fa-list-check w-6"></i>
+                    <span>ข้อมูลวัสดุ</span>
+                </a>
+
+            </nav>
+
+            <div id="user-section" class="p-4 bg-slate-800/50 border-t border-slate-700">
+                <div id="guest-info" class="space-y-2">
+                    <button onclick="showLoginOverlay()" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg">
+                        <i class="fas fa-sign-in-alt mr-2"></i> เข้าสู่ระบบ
+                    </button>
+                </div>
+                <div id="user-info" class="hidden flex items-center gap-3">
+                    <div id="user-initials" class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-sm font-bold">?</div>
+                    <div class="text-sm truncate">
+                        <p id="user-name-display" class="font-medium text-white truncate">User</p>
+                        <p id="user-email-display" class="text-gray-400 text-xs truncate">Email</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col min-w-0 bg-white relative">
+            <header class="h-16 flex items-center justify-between px-6 border-b border-gray-200 bg-white sticky top-0 z-30">
+                <div class="flex items-center gap-4">
+                    <button onclick="toggleSidebar()" class="md:hidden text-gray-600 p-2 hover:bg-gray-100 rounded-full">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <h2 id="page-title" class="text-lg font-semibold text-gray-800 truncate">หน้าแรก</h2>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button id="logout-btn" onclick="handleLogout()" class="hidden text-red-500 p-2 hover:bg-red-50 rounded-full">
+                        <i class="fas fa-power-off"></i>
+                    </button>
+                </div>
+            </header>
+
+            <div class="iframe-container">
+                <div id="loader" class="loader-wrapper hidden-element">
+                    <div class="loader"></div>
+                </div>
+
+                <!-- Auth Screen -->
+                <div id="auth-screen" class="auth-overlay hidden-element transition-all duration-300">
+    <div class="bg-white w-full max-w-[340px] rounded-[2.5rem] shadow-2xl overflow-hidden border border-white p-8 text-center animate-pop" id="auth-content">
+        
+        <div class="relative w-20 h-20 mx-auto mb-6">
+            <div class="absolute inset-0 bg-blue-100 rounded-3xl rotate-12 opacity-50"></div>
+            <div class="absolute inset-0 bg-blue-600 rounded-3xl flex items-center justify-center shadow-lg shadow-blue-200">
+                <i class="fas fa-fingerprint text-white text-3xl"></i>
+            </div>
+        </div>
+
+        <h3 class="text-xl font-black text-slate-800 mb-2">ยืนยันตัวตน</h3>
+        <p class="text-slate-400 text-sm mb-8 leading-relaxed px-2">กรุณาเข้าสู่ระบบด้วย Google <br>เพื่อบันทึกข้อมูลของคุณ</p>
+
+        <div class="space-y-3">
+            <button id="btn-login" class="w-full py-4 bg-slate-900 text-white rounded-2xl flex items-center justify-center gap-3 font-bold shadow-xl shadow-slate-200 hover:bg-slate-800 active:scale-95 transition-all">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5 bg-white p-0.5 rounded-full" alt="Google">
+                ล็อกอินด้วย Google
+            </button>
+
+            <button onclick="cancelLogin()" class="w-full py-3 text-slate-400 hover:text-slate-600 text-xs font-black tracking-widest uppercase transition-colors">
+                ไว้ภายหลัง
+            </button>
+        </div>
+
+        <div class="mt-8 pt-6 border-t border-slate-50">
+            <p class="text-[10px] text-slate-300 font-bold uppercase tracking-tighter">วิทยาลัยพยาบาลบรมราชชนนี ชัยนาท</p>
+        </div>
+    </div>
+</div>
+
+                <!-- Onboarding Form Screen -->
+                <div id="onboarding-screen" class="onboarding-overlay hidden-element">
+                    <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-md w-full border border-gray-100 overflow-y-auto max-h-[90vh]">
+                        <div class="text-center mb-6">
+                            <div class="w-14 h-14 bg-green-50 text-green-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <i class="fas fa-user-edit text-xl"></i>
+                            </div>
+                            <h3 class="text-xl font-bold">ข้อมูลส่วนตัว</h3>
+                            <p class="text-sm text-gray-500">โปรดกรอกข้อมูลให้ครบถ้วนเพื่อเริ่มใช้งาน</p>
+                        </div>
+                        
+                        <form id="profile-form" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1">ชื่อ-สกุล</label>
+                                <input type="text" id="f-name" class="w-full" placeholder="ระบุชื่อและนามสกุล" required>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1">เบอร์โทรศัพท์</label>
+                                <input type="tel" id="f-phone" class="w-full" placeholder="0XXXXXXXXX" required>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1">ประเภทผู้ใช้งาน</label>
+                                <select id="f-type" class="w-full" required onchange="handleTypeChange(this.value)">
+                                    <option value="" disabled selected>เลือกประเภท</option>
+                                    <option value="อาจารย์">อาจารย์</option>
+                                    <option value="เจ้าหน้าที่">เจ้าหน้าที่</option>
+                                    <option value="นักศึกษา">นักศึกษา</option>
+                                    <option value="บุคคลภายนอก">บุคคลภายนอก</option>
+                                </select>
+                            </div>
+
+                            <!-- Student Fields -->
+                            <div id="student-fields" class="hidden space-y-4 pt-2 border-t border-gray-100">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1">หลักสูตร</label>
+                                    <select id="f-curriculum" class="w-full">
+                                        <option value="พยาบาลศาสตรบัณฑิต">พยาบาลศาสตรบัณฑิต</option>
+                                        <option value="ผู้ช่วยพยาบาล">ผู้ช่วยพยาบาล</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1">รุ่นที่ (ระบุเป็นตัวเลข)</label>
+                                    <input type="number" id="f-batch" class="w-full" placeholder="ตัวอย่าง: 30">
+                                </div>
+                            </div>
+
+                            <div class="pt-4">
+                                <button type="submit" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-200 transition-all active:scale-[0.98]">
+                                    บันทึกและเข้าสู่ระบบ
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <iframe id="main-frame" name="main-frame" src="about:blank"></iframe>
+            </div>
+        </main>
+    </div>
+
+    <!-- Firebase Modules -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCE4dMslU9LXlbqu4OFJOIDX85sjCzd6r8",
+            authDomain: "bcn-connect-9df78.firebaseapp.com",
+            projectId: "bcn-connect-9df78",
+            storageBucket: "bcn-connect-9df78.firebasestorage.app",
+            messagingSenderId: "308971815083",
+            appId: "1:308971815083:web:a6abe5135422b84bf837ee",
+            measurementId: "G-BW7BJNNMJG"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'bcn-connect-app';
+
+        window.firebaseUser = null;
+        window.fullUserData = null;
+        let pendingNav = null;
+
+        // AUTH SYNC FUNCTION
+        window.syncWithChild = () => {
+            const iframe = document.getElementById('main-frame');
+            if (iframe && iframe.contentWindow) {
+                iframe.contentWindow.postMessage({
+                    type: 'AUTH_SYNC',
+                    user: window.firebaseUser ? {
+                        uid: window.firebaseUser.uid,
+                        email: window.firebaseUser.email,
+                        displayName: window.firebaseUser.displayName,
+                        profile: window.fullUserData
+                    } : null
+                }, '*');
+            }
+        };
+
+        // On Auth Change
+        onAuthStateChanged(auth, async (user) => {
+            window.firebaseUser = user;
+            const isGuest = !user || user.isAnonymous;
+            
+            document.getElementById('guest-info').classList.toggle('hidden', !isGuest);
+            document.getElementById('user-info').classList.toggle('hidden', isGuest);
+            document.getElementById('logout-btn').classList.toggle('hidden', isGuest);
+
+            if (!isGuest) {
+                try {
+                    const userRef = doc(db, 'artifacts', appId, 'users', user.uid);
+                    const userSnap = await getDoc(userRef);
+
+                    if (!userSnap.exists()) {
+                        document.getElementById('onboarding-screen').classList.remove('hidden-element');
+                        document.getElementById('auth-screen').classList.add('hidden-element');
+                        document.getElementById('f-name').value = user.displayName || '';
+                    } else {
+                        // ซ่อนหน้าจอทั้งหมดเมื่อล็อกอินสำเร็จและมีโปรไฟล์แล้ว
+                        document.getElementById('auth-screen').classList.add('hidden-element');
+                        document.getElementById('onboarding-screen').classList.add('hidden-element');
+                        
+                        window.fullUserData = userSnap.data();
+                        document.getElementById('user-name-display').innerText = window.fullUserData.name || user.displayName || 'User';
+                        document.getElementById('user-email-display').innerText = window.fullUserData.email || user.email || '';
+                        
+                        window.syncWithChild();
+
+                        if (pendingNav) {
+                            window.navigateTo(pendingNav.url, pendingNav.element);
+                            pendingNav = null;
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error fetching user profile:", error);
+                }
+            } else {
+                window.fullUserData = null;
+                window.syncWithChild();
+            }
+        });
+
+        // Handle Profile Form Submission
+        document.getElementById('profile-form').onsubmit = async (e) => {
+            e.preventDefault();
+            if (!window.firebaseUser) return;
+
+            const user = window.firebaseUser;
+            const type = document.getElementById('f-type').value;
+            
+            const payload = {
+                email: user.email,
+                name: document.getElementById('f-name').value,
+                phone: document.getElementById('f-phone').value,
+                type: type,
+                role: "user", 
+                createdAt: serverTimestamp()
+            };
+
+            if (type === 'นักศึกษา') {
+                payload.curriculum = document.getElementById('f-curriculum').value;
+                payload.batch = Number(document.getElementById('f-batch').value);
+            }
+
+            try {
+                const userRef = doc(db, 'artifacts', appId, 'users', user.uid);
+                await setDoc(userRef, payload);
+                
+                window.fullUserData = payload;
+                // ซ่อนหน้าจอทั้งหมดทันทีที่บันทึกสำเร็จ
+                document.getElementById('onboarding-screen').classList.add('hidden-element');
+                document.getElementById('auth-screen').classList.add('hidden-element');
+                
+                document.getElementById('user-name-display').innerText = payload.name;
+                document.getElementById('user-email-display').innerText = payload.email;
+
+                window.syncWithChild();
+
+                if (pendingNav) {
+                    window.navigateTo(pendingNav.url, pendingNav.element);
+                    pendingNav = null;
+                }
+            } catch (error) {
+                console.error("Firestore save error:", error);
+                alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล: " + error.message);
+            }
+        };
+
+        document.getElementById('btn-login').onclick = async () => {
+            try { await signInWithPopup(auth, provider); } catch (e) {}
+        };
+
+        window.handleLogout = () => {
+            signOut(auth).then(() => {
+                // ล้างค่าสถานะเมื่อ Logout
+                window.fullUserData = null;
+                window.firebaseUser = null;
+                window.location.reload(); // รีโหลดเพื่อให้กลับไปสถานะเริ่มต้น
+            });
+        };
+        window.setPendingNav = (nav) => { pendingNav = nav; };
+        window.showLoginOverlay = () => document.getElementById('auth-screen').classList.remove('hidden-element');
+        window.cancelLogin = () => document.getElementById('auth-screen').classList.add('hidden-element');
+
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            signInWithCustomToken(auth, __initial_auth_token);
+        }
+    </script>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        const iframe = document.getElementById('main-frame');
+        const loader = document.getElementById('loader');
+        const authScreen = document.getElementById('auth-screen');
+        const onboardingScreen = document.getElementById('onboarding-screen');
+
+        window.handleTypeChange = (val) => {
+            const studentFields = document.getElementById('student-fields');
+            if (val === 'นักศึกษา') {
+                studentFields.classList.remove('hidden');
+                document.getElementById('f-curriculum').required = true;
+                document.getElementById('f-batch').required = true;
+            } else {
+                studentFields.classList.add('hidden');
+                document.getElementById('f-curriculum').required = false;
+                document.getElementById('f-batch').required = false;
+            }
+        };
+
+        window.toggleSidebar = () => {
+            const isClosing = sidebar.classList.contains('sidebar-open');
+            if (isClosing) {
+                sidebar.classList.remove('sidebar-open');
+                overlay.classList.remove('show');
+            } else {
+                sidebar.classList.add('sidebar-open');
+                overlay.classList.add('show');
+            }
+        };
+
+        window.navigateTo = async function(url, element) {
+            const isProtected = element?.getAttribute('data-protected') === 'true';
+            
+            if (!isProtected) {
+                authScreen.classList.add('hidden-element');
+                onboardingScreen.classList.add('hidden-element');
+                window.setPendingNav(null);
+            }
+
+            if (isProtected && (!window.firebaseUser || window.firebaseUser.isAnonymous)) {
+                window.setPendingNav({ url, element });
+                authScreen.classList.remove('hidden-element');
+                if (window.innerWidth < 768) toggleSidebar();
+                return;
+            }
+
+            loader.classList.remove('hidden-element');
+            iframe.style.opacity = '0';
+            
+            if(element) {
+                document.getElementById('page-title').innerText = element.querySelector('span').innerText;
+                document.querySelectorAll('.nav-item').forEach(i => {
+                    i.className = 'nav-item flex items-center px-4 py-3 text-gray-400 hover:bg-slate-800 hover:text-white rounded-lg transition-all';
+                });
+                element.className = 'nav-item flex items-center px-4 py-3 bg-blue-600 text-white rounded-lg transition-all shadow-md';
+            }
+
+            try {
+                const response = await fetch(url, { method: 'HEAD' });
+                if (response.ok) {
+                    iframe.src = url;
+                } else {
+                    iframe.src = 'pages/404.html';
+                }
+            } catch (err) {
+                iframe.src = 'pages/404.html';
+            }
+
+            if (window.innerWidth < 768 && sidebar.classList.contains('sidebar-open')) toggleSidebar();
+        };
+
+        iframe.onload = () => {
+            if (iframe.src !== 'about:blank') {
+                loader.classList.add('hidden-element');
+                iframe.style.opacity = '1';
+                if (window.syncWithChild) window.syncWithChild();
+            }
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const first = document.querySelector('.nav-item');
+            if(first) navigateTo('pages/home.html', first);
+        });
+    </script>
+</body>
+</html>

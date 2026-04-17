@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap');
+        body { font-family: 'Sarabun', sans-serif; background-color: #f3f4f6; padding: 20px; }
+        .font-asset { font-family: 'Courier New', Courier, monospace; }
+        .permission-badge { font-size: 0.65rem; padding: 2px 8px; border-radius: 99px; font-weight: bold; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+    <div id="auth-check-screen" class="fixed inset-0 bg-white flex flex-col items-center justify-center z-50">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+        <p class="text-gray-600">กำลังยืนยันสิทธิ์เข้าใช้งาน...</p>
+    </div>
+
+    <div id="main-content" class="max-w-6xl mx-auto hidden">
+        <!-- Header Section -->
+        <div class="bg-white p-6 rounded-xl shadow-sm mb-6 flex flex-col md:flex-row justify-between items-start md:items-center border-l-4 border-blue-600 gap-4">
+            <div>
+                <div class="flex items-center gap-2 mb-1">
+                    <h1 class="text-xl font-bold text-gray-800">จัดการครุภัณฑ์</h1>
+                    <span id="role-badge" class="permission-badge bg-gray-100 text-gray-400">Checking...</span>
+                </div>
+                <p class="text-blue-500 text-xs font-bold uppercase tracking-widest">BCN Asset Management</p>
+                <div class="mt-2 text-[10px] text-gray-400 flex items-center gap-1">
+                    <i class="fas fa-user-shield"></i> ผู้ดูแลเอกสารนี้: <span id="manager-names" class="font-semibold italic italic">กำลังโหลด...</span>
+                </div>
+            </div>
+            
+            <div class="flex flex-wrap gap-2">
+                <!-- ปุ่มตั้งค่าผู้ดูแล (แสดงเฉพาะ Admin) -->
+                <button id="btn-manage-access" onclick="openAccessModal()" class="hidden px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition flex items-center shadow-sm font-bold text-sm">
+                    <i class="fas fa-users-cog mr-2"></i> ตั้งค่าผู้ดูแล
+                </button>
+                <button id="btn-add-asset" onclick="openModal()" class="hidden px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center shadow-sm font-bold text-sm">
+                    <i class="fas fa-plus mr-2"></i> เพิ่มครุภัณฑ์
+                </button>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-col md:flex-row gap-4">
+            <div class="flex-1 relative">
+                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                <input type="text" id="searchInput" onkeyup="renderTable()" placeholder="ค้นหาชื่อ, เลขครุภัณฑ์ หรือไอดี..." class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+            <div class="w-full md:w-48">
+                <select id="filterCategory" onchange="renderTable()" class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-bold">
+                    <option value="all">ทุกประเภท</option>
+                    <option value="medical">🩺 เครื่องมือแพทย์</option>
+                    <option value="it">💻 อุปกรณ์ไอที</option>
+                    <option value="office">📂 สำนักงาน</option>
+                    <option value="other">📦 อื่นๆ</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-gray-50 border-b">
+                        <tr>
+                            <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">ประเภท</th>
+                            <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">เลขครุภัณฑ์</th>
+                            <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">ชื่อรายการ</th>
+                            <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase text-center">สถานที่</th>
+                            <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase text-center">สถานะ</th>
+                            <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase text-center">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventory-body" class="divide-y divide-gray-100 text-sm"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Access Control Modal (Admin Only) -->
+    <div id="accessModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden flex items-center justify-center p-4 z-[70]">
+        <div class="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl">
+            <h2 class="text-lg font-bold text-gray-800 mb-2">ตั้งค่าผู้ดูแลเอกสาร</h2>
+            <p class="text-xs text-gray-500 mb-4">ใส่อีเมลผู้ที่ต้องการให้สิทธิ์จัดการครุภัณฑ์ทั้งหมด (คั่นด้วยคอมม่า)</p>
+            <textarea id="documentManagers" rows="4" placeholder="email1@bcn.ac.th, email2@..." 
+                      class="w-full border-2 border-gray-100 p-3 rounded-xl outline-none focus:border-blue-500 transition text-sm font-mono"></textarea>
+            <div class="mt-6 flex gap-3">
+                <button onclick="closeAccessModal()" class="flex-1 py-2 text-gray-500 font-bold hover:bg-gray-50 rounded-lg transition">ยกเลิก</button>
+                <button onclick="saveAccess()" class="flex-[2] py-2 bg-blue-900 text-white font-bold rounded-lg shadow-md hover:bg-black transition">บันทึกสิทธิ์</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Asset Modal -->
+    <div id="assetModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden flex items-center justify-center p-4 z-[60]">
+    <div class="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4">
+            <h2 id="modalTitle" class="text-lg font-bold text-gray-800">ข้อมูลครุภัณฑ์</h2>
+            <span id="displayId" class="text-[10px] font-mono text-gray-400 bg-gray-100 px-2 py-1 rounded"></span>
+        </div>
+        
+        <div class="space-y-4">
+            <input type="hidden" id="assetId">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">ประเภทครุภัณฑ์</label>
+                    <select id="assetCategory" class="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-blue-500 font-bold">
+                        <option value="medical">🩺 เครื่องมือแพทย์</option>
+                        <option value="it">💻 อุปกรณ์ไอที</option>
+                        <option value="office">📂 สำนักงาน</option>
+                        <option value="other">📦 อื่นๆ</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1 text-blue-600">เลขครุภัณฑ์</label>
+                    <input type="text" id="assetNumber" class="w-full border p-2 rounded-md font-asset uppercase bg-blue-50/30 border-blue-100 outline-none">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">ชื่อรายการ</label>
+                <input type="text" id="assetName" class="w-full border p-2 rounded-md outline-none">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">URL รูปภาพ</label>
+                <input type="text" id="assetImage" class="w-full border p-2 rounded-md outline-none font-mono text-xs">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">สถานที่ติดตั้ง</label>
+                    <select id="assetRoom" class="w-full border p-2 rounded-md outline-none"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">สถานะ</label>
+                    <select id="assetStatus" class="w-full border p-2 rounded-md outline-none">
+                        <option value="1">✅ พร้อมใช้งาน</option>
+                        <option value="0">❌ ชำรุด/ซ่อมแซม</option>
+                    </select>
+                </div>
+                <div>
+    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">การยืม</label>
+    <select id="assetBorrowable" class="w-full border p-2 rounded-md outline-none">
+        <option value="1">✅ ให้ยืมได้</option>
+        <option value="0">❌ ไม่ให้ยืม</option>
+    </select>
+</div>
+            </div>
+            
+            <div class="mt-6 border-t pt-4">
+                <h3 class="text-xs font-bold text-gray-500 uppercase mb-3">ข้อมูลเพิ่มเติม (กำหนดเอง)</h3>
+                <div id="dynamicFieldsContainer" class="space-y-3 max-h-40 overflow-y-auto mb-2"></div>
+                <button type="button" onclick="addNewField()" class="text-blue-600 text-xs font-bold">+ เพิ่มหัวข้อใหม่</button>
+            </div>
+        </div>
+        
+        <div class="mt-8 flex justify-end space-x-3">
+            <button onclick="closeModal()" class="px-4 py-2 text-gray-500 hover:bg-gray-50 rounded-lg font-bold">ยกเลิก</button>
+            <button id="saveBtn" onclick="saveAsset()" class="px-6 py-2 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition font-bold">บันทึกข้อมูล</button>
+        </div>
+    </div>
+</div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+  apiKey: "AIzaSyCE4dMslU9LXlbqu4OFJOIDX85sjCzd6r8",
+  authDomain: "bcn-connect-9df78.firebaseapp.com",
+  projectId: "bcn-connect-9df78",
+  storageBucket: "bcn-connect-9df78.firebasestorage.app",
+  messagingSenderId: "308971815083",
+  appId: "1:308971815083:web:a6abe5135422b84bf837ee",
+  measurementId: "G-BW7BJNNMJG"
+};
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'bcn-connect-app';
+
+        const getInvDocRef = () => doc(db, 'artifacts', appId, 'public_data', 'inventory_system', 'main', 'inventory_map');
+        const getRoomsDocRef = () => doc(db, 'artifacts', appId, 'public_data', 'rooms_system', 'main', 'rooms_map');
+
+        let inventoryData = {};
+        let roomsData = {};
+        let documentManagers = [];
+        let userRole = 'viewer'; // 'admin', 'manager', 'viewer'
+
+        // Helper Styles
+        const getCategoryLabel = (v) => ({ medical: '🩺 แพทย์', it: '💻 ไอที', office: '📂 สนง.', other: '📦 อื่นๆ' }[v] || v);
+        const getCategoryStyle = (v) => ({
+            medical: 'bg-red-50 text-red-600 border-red-100',
+            it: 'bg-blue-50 text-blue-600 border-blue-100',
+            office: 'bg-slate-50 text-slate-600 border-slate-100',
+            other: 'bg-gray-50 text-gray-600 border-gray-100'
+        }[v] || 'bg-gray-50');
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // Check Super Admin
+                const userDoc = await getDoc(doc(db, 'artifacts', appId, 'users', user.uid));
+                const isSuperAdmin = userDoc.exists() && userDoc.data().role === 'admin';
+                
+                listenData(user, isSuperAdmin);
+            } else {
+                signInAnonymously(auth);
+            }
+        });
+
+        function listenData(user, isSuperAdmin) {
+            // Listen Rooms (For Dropdown)
+            onSnapshot(getRoomsDocRef(), (snap) => {
+                roomsData = snap.exists() ? (snap.data().rooms || {}) : {};
+                updateRoomDropdown();
+                renderTable();
+            });
+
+            // Listen Inventory & Permissions
+            onSnapshot(getInvDocRef(), (snap) => {
+                const data = snap.exists() ? snap.data() : { items: {}, managers: [] };
+                inventoryData = data.items || {};
+                documentManagers = data.managers || [];
+
+                // Role Logic
+                const isDocManager = documentManagers.includes(user.email);
+                
+                if (isSuperAdmin) {
+                    userRole = 'admin';
+                    document.getElementById('role-badge').innerText = "Super Admin";
+                    document.getElementById('role-badge').className = "permission-badge bg-purple-100 text-purple-600";
+                    document.getElementById('btn-manage-access').classList.remove('hidden');
+                    document.getElementById('btn-add-asset').classList.remove('hidden');
+                } else if (isDocManager) {
+                    userRole = 'manager';
+                    document.getElementById('role-badge').innerText = "Manager";
+                    document.getElementById('role-badge').className = "permission-badge bg-blue-100 text-blue-600";
+                    document.getElementById('btn-add-asset').classList.remove('hidden');
+                } else {
+                    userRole = 'viewer';
+                    document.getElementById('role-badge').innerText = "View Only";
+                    document.getElementById('role-badge').className = "permission-badge bg-gray-100 text-gray-400";
+                }
+
+                document.getElementById('manager-names').innerText = documentManagers.length > 0 ? documentManagers.join(', ') : 'ยังไม่ได้กำหนด';
+                document.getElementById('auth-check-screen').classList.add('hidden');
+                document.getElementById('main-content').classList.remove('hidden');
+                
+                renderTable();
+            });
+        }
+
+        window.renderTable = () => {
+            const body = document.getElementById('inventory-body');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const filterCat = document.getElementById('filterCategory').value;
+            body.innerHTML = '';
+
+            const canManage = (userRole === 'admin' || userRole === 'manager');
+
+            Object.keys(inventoryData).sort().forEach(id => {
+                const item = inventoryData[id];
+                const assetNo = item.an || 'N/A';
+                const cat = item.c || 'other';
+                const isBorrowable = item.b !== 0;
+                const roomData = roomsData[item.r];
+                let roomName = roomData ? (typeof roomData === 'object' ? roomData.n : roomData) : 'ไม่ระบุ';
+
+                const matchesSearch = id.toLowerCase().includes(search) || item.n.toLowerCase().includes(search) || assetNo.toLowerCase().includes(search);
+                const matchesFilter = filterCat === 'all' || cat === filterCat;
+
+                if (matchesSearch && matchesFilter) {
+                    body.insertAdjacentHTML('beforeend', `
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 rounded-md text-[10px] font-bold border ${getCategoryStyle(cat)} uppercase">
+                                    ${getCategoryLabel(cat)}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 font-asset text-blue-800 text-xs font-bold">${assetNo}</td>
+                            <td class="px-6 py-4 flex items-center gap-3">
+    ${item.i ? `<img src="${item.i}" class="w-10 h-10 rounded-lg object-cover border">` : `<div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400"><i class="fas fa-image"></i></div>`}
+    <div>
+        <div class="font-semibold text-slate-700">${item.n}</div>
+        <div class="text-[9px] font-mono text-gray-300 uppercase">${id}</div>
+    </div>
+</td>
+                            <td class="px-6 py-4 text-center">
+                                <span class="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">${roomName}</span>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <div class="${item.s == 1 ? 'text-green-600' : 'text-red-500'} font-bold text-[10px]">
+                                    ${item.s == 1 ? 'พร้อมใช้' : 'ชำรุด'}
+                                </div>
+                                <div class="text-[9px] ${isBorrowable ? 'text-blue-500' : 'text-gray-400'}">
+                                ${isBorrowable ? '<i class="fas fa-unlock"></i> ยืมได้' : '<i class="fas fa-lock"></i> ไม่ให้ยืม'}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+            <div class="flex justify-center gap-2">
+                ${canManage ? `
+                    <button onclick="editAsset('${id}')" class="text-blue-500 hover:text-blue-700 transition"><i class="fas fa-edit"></i></button>
+                    <button onclick="deleteAsset('${id}')" class="text-red-300 hover:text-red-600 transition"><i class="fas fa-trash-alt"></i></button>
+                ` : ''}
+            </div>
+        </td>
+                        </tr>
+                    `);
+                }
+            });
+        };
+
+        // --- Access Control Logic ---
+        window.openAccessModal = () => {
+            if (userRole !== 'admin') return;
+            document.getElementById('documentManagers').value = documentManagers.join(', ');
+            document.getElementById('accessModal').classList.remove('hidden');
+        };
+
+        window.closeAccessModal = () => document.getElementById('accessModal').classList.add('hidden');
+
+        window.saveAccess = async () => {
+            if (userRole !== 'admin') return;
+            const emails = document.getElementById('documentManagers').value.split(',').map(e => e.trim()).filter(e => e !== "");
+            try {
+                await updateDoc(getInvDocRef(), { managers: emails });
+                closeAccessModal();
+            } catch (e) { alert(e.message); }
+        };
+
+        // --- Inventory Logic ---
+        window.saveAsset = async () => {
+    if (userRole === 'viewer') return alert("ไม่มีสิทธิ์จัดการข้อมูล");
+    
+    let id = document.getElementById('assetId').value || 'ASSET-' + Math.random().toString(36).substr(2, 8).toUpperCase();
+    const data = {
+        an: document.getElementById('assetNumber').value.trim(),
+        n: document.getElementById('assetName').value.trim(),
+        i: document.getElementById('assetImage').value.trim(),
+        r: document.getElementById('assetRoom').value,
+        s: parseInt(document.getElementById('assetStatus').value),
+        c: document.getElementById('assetCategory').value,
+        b: parseInt(document.getElementById('assetBorrowable')?.value || 1), // ระวังถ้าไม่ได้ใส่ใน modal แล้ว
+        u: auth.currentUser.email,
+        at: new Date().toISOString()
+    };
+
+    // ดึงข้อมูล Dynamic Fields
+    let customFields = {};
+    document.querySelectorAll('#dynamicFieldsContainer > div').forEach(row => {
+        const key = row.querySelector('.field-key')?.value.trim();
+        const type = row.querySelector('.field-type')?.value;
+        const valEl = row.querySelector('.field-value') || row.querySelector('input[type="checkbox"]');
+        if (key) customFields[key] = { value: type === 'checkbox' ? valEl.checked : valEl.value, type };
+    });
+
+    if (!data.an || !data.n || !data.r) return alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+
+    try {
+        await updateDoc(getInvDocRef(), { [`items.${id}`]: data });
+        await setDoc(doc(db, 'artifacts', appId, 'public_data', 'inventory_system', 'main', 'inventory_detail', 'all_inventorys', id), {
+            ...data, customFields, updatedAt: data.at
+        }, { merge: true });
+        closeModal();
+        alert("บันทึกข้อมูลเรียบร้อย");
+    } catch (err) { alert("เกิดข้อผิดพลาด: " + err.message); }
+};
+
+window.editAsset = async (id) => {
+    const item = inventoryData[id];
+    document.getElementById('assetId').value = id;
+    document.getElementById('displayId').innerText = id;
+    document.getElementById('assetCategory').value = item.c || 'other';
+    document.getElementById('assetBorrowable').value = item.b !== undefined ? item.b : 1; // เพิ่มบรรทัดนี้
+    document.getElementById('assetNumber').value = item.an || '';
+    document.getElementById('assetName').value = item.n;
+    document.getElementById('assetImage').value = item.i || '';
+    document.getElementById('assetRoom').value = item.r;
+    document.getElementById('assetStatus').value = item.s;
+    document.getElementById('modalTitle').innerText = "แก้ไขครุภัณฑ์";
+    
+    // โหลด Dynamic Fields
+    const container = document.getElementById('dynamicFieldsContainer');
+    container.innerHTML = '';
+    const snap = await getDoc(doc(db, 'artifacts', appId, 'public_data', 'inventory_system', 'main', 'inventory_detail', 'all_inventorys', id));
+    if (snap.exists() && snap.data().customFields) {
+        Object.entries(snap.data().customFields).forEach(([k, v]) => addNewField(k, v.value, v.type));
+    }
+    document.getElementById('assetModal').classList.remove('hidden');
+};
+
+window.addNewField = (key = "", value = "", type = "text") => {
+    const container = document.getElementById('dynamicFieldsContainer');
+    const div = document.createElement('div');
+    div.className = "flex gap-2 items-center mb-2";
+    
+    // กำหนดค่าเริ่มต้นถ้าเป็น checkbox
+    const isChecked = value === true || value === "true";
+    
+    div.innerHTML = `
+        <input type="text" placeholder="ชื่อหัวข้อ" value="${key}" class="field-key w-1/3 border p-2 rounded-md text-sm font-bold">
+        <select class="field-type border p-2 rounded-md text-xs bg-gray-50">
+            <option value="text" ${type === 'text' ? 'selected' : ''}>ข้อความ</option>
+            <option value="number" ${type === 'number' ? 'selected' : ''}>ตัวเลข</option>
+            <option value="date" ${type === 'date' ? 'selected' : ''}>วันที่</option>
+            <option value="checkbox" ${type === 'checkbox' ? 'selected' : ''}>จริง/เท็จ</option>
+        </select>
+        <div class="field-value-container w-1/2">
+            ${type === 'checkbox' 
+                ? `<input type="checkbox" ${isChecked ? 'checked' : ''} class="w-5 h-5">` 
+                : `<input type="${type}" value="${value}" class="field-value w-full border p-2 rounded-md text-sm">`}
+        </div>
+        <button onclick="this.parentElement.remove()" class="text-red-400 px-2"><i class="fas fa-times"></i></button>
+    `;
+    
+    // เปลี่ยนประเภท Input เมื่อเปลี่ยน Select
+    const typeSelect = div.querySelector('.field-type');
+    const valContainer = div.querySelector('.field-value-container');
+    
+    typeSelect.addEventListener('change', (e) => {
+        if (e.target.value === 'checkbox') {
+            valContainer.innerHTML = `<input type="checkbox" class="w-5 h-5">`;
+        } else {
+            valContainer.innerHTML = `<input type="${e.target.value}" class="field-value w-full border p-2 rounded-md text-sm">`;
+        }
+    });
+
+    container.appendChild(div);
+};
+
+        
+        window.openModal = () => {
+    document.getElementById('assetId').value = "";
+    document.getElementById('displayId').innerText = "NEW ASSET";
+    document.getElementById('assetCategory').selectedIndex = 0;
+    document.getElementById('assetBorrowable').value = "1";
+    document.getElementById('assetNumber').value = "";
+    document.getElementById('assetName').value = "";
+    document.getElementById('assetImage').value = "";
+    
+    // สำคัญ: รีเซ็ตค่าห้องให้กลับไปที่ค่าว่าง (ค่า value = "")
+    const roomSelect = document.getElementById('assetRoom');
+    roomSelect.value = ""; 
+    
+    document.getElementById('assetStatus').value = "1";
+    document.getElementById('modalTitle').innerText = "เพิ่มครุภัณฑ์ใหม่";
+    document.getElementById('assetModal').classList.remove('hidden');
+};
+
+        window.closeModal = () => document.getElementById('assetModal').classList.add('hidden');
+        
+        window.deleteAsset = async (id) => {
+            if (userRole === 'viewer') return;
+            if (!confirm(`ต้องการลบรายการ ${id}?`)) return;
+            const updateData = {};
+            updateData[`items.${id}`] = deleteField();
+            await updateDoc(getInvDocRef(), updateData);
+        };
+
+        function updateRoomDropdown() {
+            const select = document.getElementById('assetRoom');
+            const currentVal = select.value;
+            select.innerHTML = '<option value="">-- เลือกห้อง --</option>';
+            Object.keys(roomsData).sort().forEach(id => {
+                const roomInfo = roomsData[id];
+                const roomName = typeof roomInfo === 'object' ? roomInfo.n : roomInfo;
+                select.insertAdjacentHTML('beforeend', `<option value="${id}">${roomName} (${id})</option>`);
+            });
+            if (currentVal) select.value = currentVal;
+        }
+    </script>
+</body>
+</html>

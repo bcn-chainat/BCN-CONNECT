@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap');
+        body { font-family: 'Sarabun', sans-serif; background-color: #f8fafc; padding: 20px; }
+        .permission-badge { font-size: 0.65rem; padding: 2px 8px; border-radius: 99px; font-weight: bold; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+    <!-- Auth Overlay -->
+    <div id="auth-check" class="fixed inset-0 bg-white flex items-center justify-center z-50">
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-2"></div>
+            <p class="text-gray-500 text-sm">กำลังยืนยันสิทธิ์เข้าใช้งาน...</p>
+        </div>
+    </div>
+
+    <div id="main-content" class="max-w-5xl mx-auto hidden">
+        <!-- Header & Toolbar -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 gap-4">
+            <div>
+                <div class="flex items-center gap-2 mb-1">
+                    <h1 class="text-2xl font-bold text-gray-800">จัดการสถานที่/ห้อง</h1>
+                    <span id="role-badge" class="permission-badge bg-gray-100 text-gray-400">Checking...</span>
+                </div>
+                <p class="text-blue-500 text-xs font-bold uppercase tracking-widest">Rooms & Facilities System</p>
+                <div id="managers-list" class="mt-2 text-[10px] text-gray-400 flex items-center gap-1">
+                    <i class="fas fa-user-shield"></i> ผู้ดูแลเอกสารนี้: <span id="manager-names" class="font-semibold italic">กำลังโหลด...</span>
+                </div>
+            </div>
+            
+            <div class="flex gap-2 w-full md:w-auto">
+                <!-- ปุ่มจัดการผู้ดูแล (แสดงเฉพาะ Super Admin) -->
+                <button id="btn-manage-access" onclick="openAccessModal()" class="hidden bg-white border border-gray-200 text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition flex items-center font-bold text-sm">
+                    <i class="fas fa-users-cog mr-2"></i> ตั้งค่าผู้ดูแล
+                </button>
+                <button id="btn-add-room" onclick="openRoomModal()" class="hidden bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl transition flex items-center shadow-lg shadow-blue-200 font-bold">
+                    <i class="fas fa-plus mr-2"></i> เพิ่มห้องใหม่
+                </button>
+            </div>
+        </div>
+
+        <div id="rooms-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Room cards dynamically injected -->
+        </div>
+    </div>
+
+    <!-- Access Control Modal (For Admin) -->
+    <div id="accessModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-[70]">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl scale-95 transition-all">
+            <h2 class="text-xl font-bold text-gray-800 mb-2">ตั้งค่าผู้ดูแลเอกสาร</h2>
+            <p class="text-xs text-gray-500 mb-6">ระบุอีเมลของผู้ที่ต้องการให้สิทธิ์จัดการห้องทั้งหมดในหน้านี้</p>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1">อีเมลผู้ดูแล (คั่นด้วยเครื่องหมาย ,)</label>
+                    <textarea id="documentManagers" rows="3" placeholder="email1@bcn.ac.th, email2@bcn.ac.th" 
+                              class="w-full border-2 border-gray-100 p-3 rounded-xl outline-none focus:border-blue-500 transition text-sm font-mono"></textarea>
+                </div>
+            </div>
+
+            <div class="mt-8 flex gap-3">
+                <button onclick="closeAccessModal()" class="flex-1 py-3 text-gray-500 font-bold hover:bg-gray-50 rounded-xl transition">ยกเลิก</button>
+                <button onclick="saveAccess()" class="flex-[2] py-3 bg-blue-900 text-white font-bold rounded-xl shadow-lg hover:bg-black transition">
+                    บันทึกสิทธิ์ผู้ดูแล
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Room Modal (Same as before but with auth check on Save) -->
+    <div id="roomModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-[60]">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl scale-95 transition-all">
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <h2 id="modalTitle" class="text-xl font-bold text-gray-800">ข้อมูลห้อง</h2>
+                    <p id="displayRoomId" class="text-[10px] font-mono text-gray-400 bg-gray-50 px-2 py-1 rounded mt-1 inline-block uppercase">NEW ROOM</p>
+                </div>
+                <button onclick="closeRoomModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div class="space-y-4">
+                <input type="hidden" id="roomId">
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1">ชื่อสถานที่/ห้อง</label>
+                    <input type="text" id="roomName" class="w-full border-2 border-gray-100 p-3 rounded-xl outline-none focus:border-blue-500 transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1">ประเภทสถานที่</label>
+                    <select id="roomType" class="w-full border-2 border-gray-100 p-3 rounded-xl outline-none focus:border-blue-500 transition">
+                        <option value="lab">ห้องปฏิบัติการ (Lab)</option>
+                        <option value="meeting">ห้องประชุม</option>
+                        <option value="classroom">ห้องเรียน</option>
+                        <option value="office">สำนักงาน</option>
+                        <option value="other">อื่นๆ</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mt-8 flex gap-3">
+                <button onclick="closeRoomModal()" class="flex-1 py-3 text-gray-500 font-bold hover:bg-gray-50 rounded-xl transition">ยกเลิก</button>
+                <button id="saveBtn" onclick="saveRoom()" class="flex-[2] py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg hover:bg-blue-700 transition">
+                    บันทึกข้อมูล
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+  apiKey: "AIzaSyCE4dMslU9LXlbqu4OFJOIDX85sjCzd6r8",
+  authDomain: "bcn-connect-9df78.firebaseapp.com",
+  projectId: "bcn-connect-9df78",
+  storageBucket: "bcn-connect-9df78.firebasestorage.app",
+  messagingSenderId: "308971815083",
+  appId: "1:308971815083:web:a6abe5135422b84bf837ee",
+  measurementId: "G-BW7BJNNMJG"
+};
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'bcn-connect-app';
+
+        const getRoomsDocRef = () => doc(db, 'artifacts', appId, 'public_data', 'rooms_system', 'main', 'rooms_map');
+
+        let roomsData = {};
+        let documentManagers = [];
+        let userRole = 'viewer'; // 'admin', 'manager', 'viewer'
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // 1. ตรวจสอบ Super Admin จาก Profile
+                const userDoc = await getDoc(doc(db, 'artifacts', appId, 'users', user.uid));
+                const isSuperAdmin = userDoc.exists() && userDoc.data().role === 'admin';
+                
+                // 2. เริ่ม Listen ข้อมูลห้องและสิทธิ์
+                listenRooms(user, isSuperAdmin);
+            } else {
+                signInAnonymously(auth);
+            }
+        });
+
+        function listenRooms(user, isSuperAdmin) {
+            onSnapshot(getRoomsDocRef(), (snap) => {
+                const data = snap.exists() ? snap.data() : { rooms: {}, managers: [] };
+                roomsData = data.rooms || {};
+                documentManagers = data.managers || [];
+
+                // 3. กำหนดสิทธิ์ผู้ใช้ปัจจุบัน
+                const isManager = documentManagers.includes(user.email);
+                
+                if (isSuperAdmin) {
+                    userRole = 'admin';
+                    document.getElementById('role-badge').innerText = "Super Admin";
+                    document.getElementById('role-badge').className = "permission-badge bg-purple-100 text-purple-600";
+                    document.getElementById('btn-manage-access').classList.remove('hidden');
+                    document.getElementById('btn-add-room').classList.remove('hidden');
+                } else if (isManager) {
+                    userRole = 'manager';
+                    document.getElementById('role-badge').innerText = "Document Manager";
+                    document.getElementById('role-badge').className = "permission-badge bg-blue-100 text-blue-600";
+                    document.getElementById('btn-add-room').classList.remove('hidden');
+                } else {
+                    userRole = 'viewer';
+                    document.getElementById('role-badge').innerText = "View Only";
+                    document.getElementById('role-badge').className = "permission-badge bg-gray-100 text-gray-400";
+                }
+
+                document.getElementById('manager-names').innerText = documentManagers.length > 0 ? documentManagers.join(', ') : 'ยังไม่ได้กำหนด';
+                document.getElementById('auth-check').classList.add('hidden');
+                document.getElementById('main-content').classList.remove('hidden');
+                
+                renderRooms();
+            });
+        }
+
+        window.renderRooms = () => {
+            const grid = document.getElementById('rooms-grid');
+            grid.innerHTML = '';
+            const canManage = (userRole === 'admin' || userRole === 'manager');
+            
+            Object.keys(roomsData).sort().forEach(id => {
+                const room = roomsData[id];
+                const typeValue = room.t || 'other';
+
+                grid.insertAdjacentHTML('beforeend', `
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all group">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
+                                <i class="fas ${roomTypeIcons[typeValue] || 'fa-door-open'}"></i>
+                            </div>
+                            ${canManage ? `
+                            <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition">
+                                <button onclick="editRoom('${id}')" class="p-2 text-blue-400 hover:text-blue-600"><i class="fas fa-edit"></i></button>
+                                <button onclick="deleteRoom('${id}')" class="p-2 text-red-300 hover:text-red-500"><i class="fas fa-trash"></i></button>
+                            </div>` : ''}
+                        </div>
+                        <h3 class="font-bold text-gray-800 text-lg leading-tight mb-1">${room.n}</h3>
+                        <p class="text-[10px] font-mono text-gray-300 uppercase tracking-tighter mb-3">${id}</p>
+                    </div>
+                `);
+            });
+        };
+
+        const roomTypeIcons = { lab: 'fa-flask', meeting: 'fa-users', classroom: 'fa-chalkboard', office: 'fa-briefcase', other: 'fa-door-open' };
+
+        // --- Logic การจัดการสิทธิ์ (สำหรับ Admin เท่านั้น) ---
+        window.openAccessModal = () => {
+            document.getElementById('documentManagers').value = documentManagers.join(', ');
+            document.getElementById('accessModal').classList.remove('hidden');
+        };
+
+        window.closeAccessModal = () => document.getElementById('accessModal').classList.add('hidden');
+
+        window.saveAccess = async () => {
+            if (userRole !== 'admin') return;
+            const emails = document.getElementById('documentManagers').value.split(',').map(e => e.trim()).filter(e => e !== "");
+            
+            try {
+                await updateDoc(getRoomsDocRef(), { managers: emails });
+                closeAccessModal();
+            } catch (e) {
+                alert("เกิดข้อผิดพลาดในการบันทึกสิทธิ์: " + e.message);
+            }
+        };
+
+        // --- Logic การจัดการห้อง (เหมือนเดิมแต่เช็ค userRole) ---
+        window.saveRoom = async () => {
+            if (userRole === 'viewer') return alert("คุณไม่มีสิทธิ์แก้ไขเอกสารนี้");
+            
+            let id = document.getElementById('roomId').value;
+            const n = document.getElementById('roomName').value.trim();
+            const t = document.getElementById('roomType').value;
+            if (!n) return alert("กรุณากรอกชื่อห้อง");
+
+            if (!id) id = 'ROOM-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+
+            try {
+                const docRef = getRoomsDocRef();
+                const updateData = {};
+                updateData[`rooms.${id}`] = { n, t, u: auth.currentUser.email, at: new Date().toISOString() };
+                await updateDoc(docRef, updateData);
+                closeRoomModal();
+            } catch (err) {
+                alert(err.message);
+            }
+        };
+
+        window.openRoomModal = () => {
+            document.getElementById('roomId').value = "";
+            document.getElementById('roomName').value = "";
+            document.getElementById('roomModal').classList.remove('hidden');
+        };
+
+        window.editRoom = (id) => {
+            const room = roomsData[id];
+            document.getElementById('roomId').value = id;
+            document.getElementById('roomName').value = room.n;
+            document.getElementById('roomType').value = room.t || 'other';
+            document.getElementById('roomModal').classList.remove('hidden');
+        };
+
+        window.closeRoomModal = () => document.getElementById('roomModal').classList.add('hidden');
+
+        window.deleteRoom = async (id) => {
+            if (userRole === 'viewer') return;
+            if (!confirm(`ยืนยันการลบห้อง ${id}?`)) return;
+            const updateData = {};
+            updateData[`rooms.${id}`] = deleteField();
+            await updateDoc(getRoomsDocRef(), updateData);
+        };
+    </script>
+</body>
+</html>

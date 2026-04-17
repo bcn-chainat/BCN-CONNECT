@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BCN Inventory System (Iframe)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&display=swap');
+        body { font-family: 'Sarabun', sans-serif; background-color: #f8fafc; margin: 0; }
+        .item-card { background: white; border-radius: 2rem; border: 1px solid #f1f5f9; transition: all 0.3s; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="pb-24">
+
+    <header class="bg-white/80 backdrop-blur-md p-4 sticky top-0 z-40 border-b border-slate-100 flex justify-between items-center">
+        <h1 class="font-black text-slate-800 text-lg uppercase tracking-tighter">
+            <i class="fas fa-boxes text-blue-600 mr-2"></i>ระบบยืมครุภัณฑ์
+        </h1>
+    </header>
+    <div class="flex gap-2 p-4 max-w-4xl mx-auto">
+    <button onclick="switchTab('catalog')" id="btn-catalog" class="flex-1 py-3 rounded-2xl font-black text-sm bg-slate-900 text-white shadow-lg">ครุภัณฑ์ทั้งหมด</button>
+    <button onclick="switchTab('history')" id="btn-history" class="flex-1 py-3 rounded-2xl font-black text-sm bg-white border border-slate-200 text-slate-400">ประวัติของคุณ</button>
+</div>
+
+<div id="tab-catalog" class="tab-content">
+    <main class="max-w-4xl mx-auto p-4">
+        <div class="mb-6 relative">
+            <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input type="text" id="search-input" placeholder="ค้นหาครุภัณฑ์..." class="w-full pl-14 pr-6 py-4 rounded-3xl bg-white border border-slate-100 shadow-sm focus:ring-2 focus:ring-blue-500 outline-none font-medium">
+        </div>
+        <div class="flex gap-2 overflow-x-auto no-scrollbar mb-6 pb-2">
+            <button onclick="filterByCategory('all')" class="category-btn px-4 py-2 rounded-full text-xs font-black bg-slate-900 text-white whitespace-nowrap">ทั้งหมด</button>
+            <button onclick="filterByCategory('medical')" class="category-btn px-4 py-2 rounded-full text-xs font-black bg-white border border-slate-200 text-slate-400 whitespace-nowrap">🩺 เครื่องมือแพทย์</button>
+            <button onclick="filterByCategory('it')" class="category-btn px-4 py-2 rounded-full text-xs font-black bg-white border border-slate-200 text-slate-400 whitespace-nowrap">💻 อุปกรณ์ไอที</button>
+            <button onclick="filterByCategory('office')" class="category-btn px-4 py-2 rounded-full text-xs font-black bg-white border border-slate-200 text-slate-400 whitespace-nowrap">📂 สำนักงาน</button>
+            <button onclick="filterByCategory('other')" class="category-btn px-4 py-2 rounded-full text-xs font-black bg-white border border-slate-200 text-slate-400 whitespace-nowrap">📦 อื่นๆ</button>
+        </div>
+        <div id="catalog-grid" class="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div class="col-span-full text-center py-20 text-slate-400 font-bold italic">รอการยืนยันตัวตน...</div>
+        </div>
+    </main>
+</div>
+
+<div id="tab-history" class="tab-content hidden">
+    <main class="max-w-4xl mx-auto p-4">
+        <h2 class="font-black text-slate-800 mb-4 flex items-center gap-2">
+            <i class="fas fa-history text-blue-500"></i> ประวัติการยืมของคุณ
+        </h2>
+        <div id="history-list" class="space-y-3">
+            <p class="text-slate-400 italic">กำลังโหลดประวัติ...</p>
+        </div>
+    </main>
+</div>
+    <div id="req-drawer" class="fixed inset-0 z-50 invisible transition-all">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="toggleDrawer()"></div>
+        <div class="absolute right-0 top-0 bottom-0 w-full max-w-md bg-white shadow-2xl translate-x-full transition-transform duration-300 flex flex-col">
+            <div class="p-8 border-b border-slate-50 flex justify-between items-center">
+                <h3 class="font-black text-slate-800 uppercase tracking-tighter flex items-center gap-3">
+                    <i class="fas fa-file-signature text-blue-500"></i> รายละเอียดการยืม
+                </h3>
+                <button onclick="toggleDrawer()" class="text-slate-300 hover:text-rose-500"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            
+            <div class="p-8 space-y-4 flex-1 overflow-y-auto">
+                <div class="p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                    <p class="text-[10px] font-black text-blue-400 uppercase">ครุภัณฑ์ที่เลือก</p>
+                    <p id="selected-item-name" class="font-bold text-blue-700"></p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="space-y-1">
+                        <span class="text-[10px] font-black text-slate-400 uppercase ml-1">วันที่ต้องการรับ</span>
+                        <input type="date" id="pickup-date" class="w-full p-3 rounded-xl border-2 border-slate-50 bg-slate-50 text-xs font-bold outline-none focus:border-blue-500 focus:bg-white transition-all">
+                    </div>
+                    <div class="space-y-1">
+                        <span class="text-[10px] font-black text-slate-400 uppercase ml-1">เวลา</span>
+                        <input type="time" id="pickup-time" class="w-full p-3 rounded-xl border-2 border-slate-50 bg-slate-50 text-xs font-bold outline-none focus:border-blue-500 focus:bg-white transition-all">
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <span class="text-[10px] font-black text-slate-400 uppercase ml-1">วัตถุประสงค์</span>
+                    <textarea id="req-purpose" rows="4" placeholder="ระบุเหตุผลในการยืม..." class="w-full p-4 rounded-2xl border-2 border-slate-50 bg-slate-50 text-xs font-bold outline-none focus:border-blue-500 focus:bg-white transition-all resize-none"></textarea>
+                </div>
+            </div>
+
+            <div class="p-8 bg-slate-50 border-t border-slate-100">
+                <button id="submit-btn" onclick="processRequest()" class="w-full py-5 bg-slate-900 text-white rounded-[1.5rem] font-black shadow-xl hover:bg-blue-600 transition-all disabled:opacity-50">
+                    ยืนยันคำขอการยืม
+                </button>
+            </div>
+        </div>
+    </div>
+    <div id="cart-dock" class="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 hidden transition-all duration-300">
+    <button onclick="openDrawer()" class="bg-blue-600 text-white px-8 py-4 rounded-full shadow-2xl flex items-center gap-3 hover:bg-blue-700 active:scale-95 transition-all">
+        <i class="fas fa-shopping-basket animate-bounce"></i>
+        <span class="font-black text-sm">ยืนยันการยืม <span id="cart-count" class="bg-white text-blue-600 px-2 py-0.5 rounded-full ml-1">0</span> รายการ</span>
+    </button>
+</div>
+    <div class="fixed bottom-6 left-6 z-40 p-4 bg-white/90 backdrop-blur-md border border-white rounded-[2rem] flex items-center gap-4 shadow-xl shadow-slate-200/50 min-w-[220px] max-w-[80vw]">
+    <div class="w-12 h-12 flex-shrink-0 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
+        <i class="fas fa-user-circle text-2xl"></i>
+    </div>
+    <div class="overflow-hidden">
+        <p id="user-display-name" class="text-xs font-black text-slate-800 uppercase tracking-tight whitespace-nowrap">Signing in...</p>
+        <p id="user-display-info" class="text-[9px] text-slate-500 font-bold uppercase opacity-70 whitespace-nowrap">Connecting to system</p>
+    </div>
+</div>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { query, where, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Config (คงเดิมตามโปรเจกต์ของคุณ)
+        const firebaseConfig = {
+            apiKey: "AIzaSyCE4dMslU9LXlbqu4OFJOIDX85sjCzd6r8",
+            authDomain: "bcn-connect-9df78.firebaseapp.com",
+            projectId: "bcn-connect-9df78",
+            storageBucket: "bcn-connect-9df78.firebasestorage.app",
+            messagingSenderId: "308971815083",
+            appId: "1:308971815083:web:a6abe5135422b84bf837ee"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = 'bcn-connect-app';
+
+        let inventory = {};
+        let currentCategory = 'all';
+        let currentUser = null;
+        let currentUserData = null; // ข้อมูลที่ Sync จากหน้าแม่
+        let pendingItem = null;
+        let cart = [];
+
+        // --- Init Function ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                if(!currentUser) currentUser = { uid: user.uid, name: 'Guest User', phone: '-' };
+                initInventoryListener();
+                listenUserRequests(user.uid);
+            } else {
+                signInAnonymously(auth);
+            }
+        });
+
+        // [จุดสำคัญ] รับข้อมูลจาก Parent ผ่าน AUTH_SYNC
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'AUTH_SYNC' && event.data.user) {
+                currentUserData = event.data.user;
+                const u = event.data.user;
+                const p = u.profile || {};
+        
+                currentUser = {
+                    uid: u.uid,
+                    name: p.name || u.displayName || 'Guest',
+                    phone: p.phone || '-',
+                    type: p.type || 'ทั่วไป',
+                    curriculum: p.curriculum || null,
+                    batch: p.batch || null
+                };
+
+                document.getElementById('user-display-name').innerText = currentUser.name;
+        
+                // ปรับการแสดงผลด้านบนให้ละเอียดขึ้น (ถ้าเป็นนักศึกษาให้โชว์รุ่นด้วย)
+                const extraInfo = currentUser.type === 'นักศึกษา' 
+                    ? ` | ${currentUser.curriculum} รุ่น ${currentUser.batch}` 
+                    : '';
+                document.getElementById('user-display-info').innerText = `${currentUser.type}${extraInfo} | ${currentUser.phone}`;
+            }
+        });
+
+        function initInventoryListener() {
+            onSnapshot(doc(db, 'artifacts', appId, 'public_data', 'inventory_system', 'main', 'inventory_map'), (snap) => {
+                if (snap.exists()) {
+                    inventory = snap.data().items || {};
+                    renderCatalog();
+                }
+            });
+        }
+
+        window.filterByCategory = (cat) => {
+    currentCategory = cat;
+    
+    // อัปเดตสไตล์ของปุ่ม
+    document.querySelectorAll('.category-btn').forEach(btn => {
+        const isActive = btn.innerText.includes(getCatName(cat));
+        // ถ้ากด 'ทั้งหมด' ให้เช็คกรณีพิเศษ
+        const isAll = (cat === 'all' && btn.innerText === 'ทั้งหมด');
+        
+        if (isActive || isAll) {
+            btn.className = "category-btn px-4 py-2 rounded-full text-xs font-black bg-slate-900 text-white whitespace-nowrap";
+        } else {
+            btn.className = "category-btn px-4 py-2 rounded-full text-xs font-black bg-white border border-slate-200 text-slate-400 whitespace-nowrap";
+        }
+    });
+    
+    renderCatalog();
+};
+
+window.toggleCartItem = (id) => {
+    const index = cart.indexOf(id);
+    if (index === -1) {
+        cart.push(id);
+    } else {
+        cart.splice(index, 1);
+    }
+    renderCatalog(); // วาดหน้าจอใหม่เพื่อโชว์สถานะการเลือก
+    updateCartUI();  // อัปเดตปุ่มสรุปด้านล่าง
+};
+
+function updateCartUI() {
+    const dock = document.getElementById('cart-dock');
+    const count = document.getElementById('cart-count');
+    if (cart.length > 0) {
+        dock.classList.remove('hidden');
+        count.innerText = cart.length;
+    } else {
+        dock.classList.add('hidden');
+    }
+}
+
+// ฟังก์ชันเสริมช่วยเปรียบเทียบชื่อ
+function getCatName(cat) {
+    if (cat === 'medical') return 'เครื่องมือแพทย์';
+    if (cat === 'it') return 'อุปกรณ์ไอที';
+    if (cat === 'office') return 'สำนักงาน';
+    if (cat === 'other') return 'อื่นๆ';
+    return 'ทั้งหมด';
+}
+
+        window.renderCatalog = () => {
+    const grid = document.getElementById('catalog-grid');
+    const search = document.getElementById('search-input').value.toLowerCase();
+    
+    const filtered = Object.entries(inventory).filter(([id, item]) => {
+        const matchSearch = (item.n || '').toLowerCase().includes(search);
+        const matchCategory = (currentCategory === 'all' || item.c === currentCategory);
+        return matchSearch && matchCategory && item.s === 1 && item.b === 1;
+    });
+
+    grid.innerHTML = filtered.map(([id, item]) => {
+        const isSelected = cart.includes(id);
+        return `
+            <div class="item-card p-4 flex flex-col h-full border-2 transition-all ${isSelected ? 'border-blue-500 bg-blue-50/50 shadow-inner' : 'border-transparent bg-white'}">
+                <div class="w-full aspect-square rounded-2xl bg-slate-50 mb-3 overflow-hidden border border-slate-50 flex items-center justify-center relative">
+                    ${item.i ? `<img src="${item.i}" class="w-full h-full object-cover">` : `<i class="fas fa-box text-slate-200 text-3xl"></i>`}
+                    ${isSelected ? `<div class="absolute inset-0 bg-blue-600/10 flex items-center justify-center"><i class="fas fa-check-circle text-blue-600 text-3xl"></i></div>` : ''}
+                </div>
+                <div class="flex-1">
+                    <h4 class="font-bold text-slate-800 text-xs mb-1 line-clamp-2">${item.n}</h4>
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-tighter mb-3">ID: ${item.an || '-'}</p>
+                </div>
+                <button onclick="toggleCartItem('${id}')" 
+                    class="w-full py-2.5 ${isSelected ? 'bg-rose-500 hover:bg-rose-600' : 'bg-slate-900 hover:bg-blue-600'} text-white rounded-xl text-[10px] font-black shadow-lg transition-all">
+                    ${isSelected ? 'ยกเลิกการเลือก' : 'เลือกรายการนี้'}
+                </button>
+            </div>
+        `;
+    }).join('') || '<p class="col-span-full text-center py-10 text-slate-300 font-bold italic">ไม่พบรายการที่พร้อมยืม</p>';
+};
+
+        function listenUserRequests(uid) {
+    const q = query(collection(db, 'artifacts', appId, 'public_data', 'inventory_system', 'requisitions'), where("userId", "==", uid));
+    
+    onSnapshot(q, (snapshot) => {
+        const historyList = document.getElementById('history-list');
+        const reqs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        if (reqs.length === 0) {
+            historyList.innerHTML = '<p class="text-sm text-slate-400">ยังไม่มีรายการยืม</p>';
+            return;
+        }
+
+        historyList.innerHTML = reqs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map(req => {
+            let statusClass = req.status === 'pending' ? "bg-amber-100 text-amber-600" : "bg-slate-100 text-slate-500";
+            if (req.status === 'approved') statusClass = "bg-green-100 text-green-600";
+            
+            let statusText = req.status === 'pending' ? 'รอดำเนินการ' : (req.status === 'canceled' ? 'ยกเลิกแล้ว' : req.status);
+
+            // ปรับการแสดงผลชื่อไอเทม (เนื่องจาก items เป็น Array)
+            // ถ้ามีหลายชิ้นให้แสดงชิ้นแรกแล้วตามด้วย +จำนวนที่เหลือ
+            const firstItemName = inventory[req.items[0]]?.n || req.items[0] || "ไม่ระบุชื่อ";
+            const displayItemName = req.items.length > 1 ? `${firstItemName} (+${req.items.length - 1})` : firstItemName;
+
+            return `
+            <div class="p-4 bg-white rounded-2xl border border-slate-100 flex justify-between items-center shadow-sm mb-3">
+                <div>
+                    <p class="font-bold text-slate-800 text-sm">${displayItemName}</p>
+                    <p class="text-[10px] text-slate-400">วันที่: ${req.date} | ${req.time}</p>
+                    ${req.roomName ? `<p class="text-[9px] text-blue-500 font-bold">ใช้ที่: ${req.roomName}</p>` : ''}
+                </div>
+                <div class="flex flex-col items-end gap-1">
+                    <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase ${statusClass}">${statusText}</span>
+                    ${req.status === 'pending' ? `
+                        <button onclick="cancelRequest('${req.id}')" class="text-[9px] text-rose-500 font-bold underline px-1 hover:text-rose-700">ยกเลิกรายการ</button>
+                    ` : ''}
+                </div>
+            </div>
+            `;
+        }).join('');
+    });
+}
+
+window.cancelRequest = async (reqId) => {
+    if (!confirm("คุณต้องการยกเลิกคำขอนี้ใช่หรือไม่?")) return;
+    
+    try {
+        const reqRef = doc(db, 'artifacts', appId, 'public_data', 'inventory_system', 'requisitions', reqId);
+        await updateDoc(reqRef, {
+            status: 'canceled'
+        });
+        alert("ยกเลิกรายการสำเร็จ");
+    } catch (e) {
+        alert("ไม่สามารถยกเลิกได้: " + e.message);
+    }
+};
+
+        window.openDrawer = () => {
+    if (cart.length === 0) return alert("กรุณาเลือกครุภัณฑ์อย่างน้อย 1 รายการ");
+    
+    // แสดงรายชื่อของที่เลือกทั้งหมด
+    const selectedNames = cart.map(id => inventory[id]?.n || id).join(', ');
+    document.getElementById('selected-item-name').innerText = `คุณเลือก ${cart.length} รายการ: ${selectedNames}`;
+    
+    document.getElementById('req-drawer').classList.remove('invisible');
+    document.getElementById('req-drawer').firstElementChild.nextElementSibling.classList.remove('translate-x-full');
+};
+
+        window.toggleDrawer = () => {
+            document.getElementById('req-drawer').classList.add('invisible');
+            document.getElementById('req-drawer').firstElementChild.nextElementSibling.classList.add('translate-x-full');
+        };
+
+        window.processRequest = async () => {
+    const date = document.getElementById('pickup-date').value;
+    const time = document.getElementById('pickup-time').value;
+    const purpose = document.getElementById('req-purpose').value;
+
+    if (!date || !time || !purpose) return alert("กรุณาระบุ วันที่ เวลา และวัตถุประสงค์");
+    if (!currentUserData) return alert("ไม่พบข้อมูลผู้ใช้");
+
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-circle-notch animate-spin mr-2"></i> กำลังส่งคำขอ...';
+
+    try {
+        const reqId = `REQ-GEN-${Date.now()}`; // เปลี่ยนชื่อ Prefix ให้ตรงประเภท
+        const profile = currentUserData?.profile || {}; 
+        
+        const requestData = {
+            bookingId: null,
+            rid: null,
+            roomName: null,
+            items: [...cart], // ส่ง Array ของ ID ทั้งหมดในตะกร้า
+            userId: currentUserData?.uid,
+            userName: profile.name || currentUserData?.displayName || "ผู้ใช้ทั่วไป",
+            userPhone: profile.phone || "-",
+            userType: profile.type || "-",
+            purpose: purpose,
+            date: date,
+            time: time,
+            status: 'pending',
+            createdAt: new Date().toISOString(),
+            type: 'direct'
+        };
+
+        if (profile.type === 'นักศึกษา') {
+            requestData.curriculum = profile.curriculum || "-";
+            requestData.batch = profile.batch || 0;
+        }
+
+        await setDoc(doc(db, 'artifacts', appId, 'public_data', 'inventory_system', 'requisitions', reqId), requestData);
+
+        alert("ส่งคำขอการยืมทั้ง " + cart.length + " รายการสำเร็จ!");
+        
+        // ล้างข้อมูลหลังส่งสำเร็จ
+        cart = [];
+        updateCartUI();
+        toggleDrawer();
+        renderCatalog();
+        document.getElementById('req-purpose').value = "";
+        
+    } catch (e) {
+        alert("เกิดข้อผิดพลาด: " + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "ยืนยันคำขอการยืม";
+    }
+};
+
+window.switchTab = (tabName) => {
+    // 1. สลับเนื้อหา
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+    document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+
+    // 2. สลับสไตล์ปุ่ม
+    document.getElementById('btn-catalog').className = tabName === 'catalog' 
+        ? "flex-1 py-3 rounded-2xl font-black text-sm bg-slate-900 text-white shadow-lg" 
+        : "flex-1 py-3 rounded-2xl font-black text-sm bg-white border border-slate-200 text-slate-400";
+        
+    document.getElementById('btn-history').className = tabName === 'history' 
+        ? "flex-1 py-3 rounded-2xl font-black text-sm bg-slate-900 text-white shadow-lg" 
+        : "flex-1 py-3 rounded-2xl font-black text-sm bg-white border border-slate-200 text-slate-400";
+};
+
+        document.getElementById('search-input').addEventListener('input', renderCatalog);
+    </script>
+</body>
+</html>
