@@ -279,7 +279,7 @@
     <!-- Firebase Modules -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithRedirect, getRedirectResult } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -408,8 +408,19 @@
         };
 
         document.getElementById('btn-login').onclick = async () => {
-            try { await signInWithPopup(auth, provider); } catch (e) {}
-        };
+    try { 
+        await signInWithRedirect(auth, provider); // ใช้ Redirect แทน Popup
+    } catch (e) {
+        console.error(e);
+    }
+};
+
+// เพิ่มส่วนนี้เพื่อเช็คผลลัพธ์หลังจากมัน Redirect กลับมาหน้าเดิม:
+getRedirectResult(auth).then((result) => {
+    // ระบบจะจัดการต่อที่ onAuthStateChanged เอง
+}).catch((error) => {
+    console.error("Redirect Error:", error);
+});
 
         window.handleLogout = () => {
             signOut(auth).then(() => {
