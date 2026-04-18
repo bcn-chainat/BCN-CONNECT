@@ -283,14 +283,14 @@
         import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
-            apiKey: "AIzaSyCE4dMslU9LXlbqu4OFJOIDX85sjCzd6r8",
-            authDomain: "bcn-connect-9df78.firebaseapp.com",
-            projectId: "bcn-connect-9df78",
-            storageBucket: "bcn-connect-9df78.firebasestorage.app",
-            messagingSenderId: "308971815083",
-            appId: "1:308971815083:web:a6abe5135422b84bf837ee",
-            measurementId: "G-BW7BJNNMJG"
-        };
+  apiKey: "AIzaSyCGlTqnnQXqtP28OmPEK6G7yAYzip_YUgw",
+  authDomain: "bcn-connect-by-bcnchainat.firebaseapp.com",
+  projectId: "bcn-connect-by-bcnchainat",
+  storageBucket: "bcn-connect-by-bcnchainat.firebasestorage.app",
+  messagingSenderId: "399242462531",
+  appId: "1:399242462531:web:a004ef638fa46865301bf6",
+  measurementId: "G-5CBNDYJ1NP"
+};
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -409,18 +409,23 @@
 
         document.getElementById('btn-login').onclick = async () => {
     try { 
-        await signInWithRedirect(auth, provider); // ใช้ Redirect แทน Popup
+        await signInWithRedirect(auth, provider); 
     } catch (e) {
         console.error(e);
     }
 };
 
 // เพิ่มส่วนนี้เพื่อเช็คผลลัพธ์หลังจากมัน Redirect กลับมาหน้าเดิม:
-getRedirectResult(auth).then((result) => {
-    // ระบบจะจัดการต่อที่ onAuthStateChanged เอง
-}).catch((error) => {
-    console.error("Redirect Error:", error);
-});
+getRedirectResult(auth)
+    .then((result) => {
+        if (result) {
+            console.log("Login Success!", result.user);
+            // ไม่ต้องเขียน logic ซับซ้อนตรงนี้ เพราะเดี๋ยว onAuthStateChanged จะทำงานต่อเอง
+        }
+    }).catch((error) => {
+        console.error("Error during redirect:", error);
+        alert("การล็อกอินผิดพลาด: " + error.message);
+    });
 
         window.handleLogout = () => {
             signOut(auth).then(() => {
