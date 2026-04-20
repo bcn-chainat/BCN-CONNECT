@@ -191,8 +191,9 @@
         let userRole = 'viewer'; // 'admin', 'manager', 'viewer'
 
         // Helper Styles
-        const getCategoryLabel = (v) => ({ mannequin: 'หุ่น' medical: 'แพทย์', it: 'ไอที', office: 'สนง.', other: 'อื่นๆ' }[v] || v);
+        const getCategoryLabel = (v) => ({ mannequin: 'หุ่น', medical: 'แพทย์', it: 'ไอที', office: 'สนง.', other: 'อื่นๆ' }[v] || v);
         const getCategoryStyle = (v) => ({
+            mannequin: 'bg-blue-50 text-blue-600 border-blue-100',
             medical: 'bg-red-50 text-red-600 border-red-100',
             it: 'bg-blue-50 text-blue-600 border-blue-100',
             office: 'bg-slate-50 text-slate-600 border-slate-100',
