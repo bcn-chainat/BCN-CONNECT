@@ -228,6 +228,7 @@ function updateCartUI() {
 
 // ฟังก์ชันเสริมช่วยเปรียบเทียบชื่อ
 function getCatName(cat) {
+    if (cat === 'mannequin') return 'หุ่น';
     if (cat === 'medical') return 'เครื่องมือแพทย์';
     if (cat === 'it') return 'อุปกรณ์ไอที';
     if (cat === 'office') return 'สำนักงาน';
