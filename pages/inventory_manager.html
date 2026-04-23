@@ -323,33 +323,53 @@
 
         window.closeAccessModal = () => document.getElementById('accessModal').classList.add('hidden');
 
-        window.saveAccess = async () => {
-            if (userRole !== 'admin') return;
-            const emails = document.getElementById('documentManagers').value.split(',').map(e => e.trim()).filter(e => e !== "");
-            try {
-                await updateDoc(getInvDocRef(), { managers: emails });
-                closeAccessModal();
-            } catch (e) { alert(e.message); }
-        };
-
-        // --- Inventory Logic ---
         window.saveAsset = async () => {
     if (userRole === 'viewer') return alert("ไม่มีสิทธิ์จัดการข้อมูล");
     
-    let id = document.getElementById('assetId').value || 'ASSET-' + Math.random().toString(36).substr(2, 8).toUpperCase();
+    // 1. รับค่าจาก Input
+    const id = document.getElementById('assetId').value; // ถ้าว่างแสดงว่าเป็นรายการใหม่
+    const assetNumberInput = document.getElementById('assetNumber').value.trim().toUpperCase();
+    const assetNameInput = document.getElementById('assetName').value.trim();
+    const assetRoomInput = document.getElementById('assetRoom').value;
+
+    // 2. ตรวจสอบว่ากรอกข้อมูลสำคัญครบไหม
+    if (!assetNumberInput || !assetNameInput || !assetRoomInput) {
+        return alert("กรุณากรอกข้อมูลให้ครบถ้วน (เลขครุภัณฑ์, ชื่อรายการ, สถานที่)");
+    }
+
+    // 3. 🔥 ตรวจสอบ "เลขครุภัณฑ์ซ้ำ" (Duplicate Check)
+    // ค้นหาใน inventoryData ว่ามีใครใช้เลข assetNumberInput นี้อยู่แล้วหรือไม่
+    const isDuplicate = Object.keys(inventoryData).some(key => {
+    const existingItem = inventoryData[key];
+    // ถ้าไม่มีเลขครุภัณฑ์ในรายการนั้นให้ข้ามไป
+    if (!existingItem.an) return false;
+
+    // เช็คว่าไม่ใช่ตัวมันเอง และเลขตรงกันเป๊ะ (รวมถึง / และ -)
+    // ใช้ trim() เพื่อกันกรณีเผลอเคาะสเปซหน้า-หลัง
+    return key !== id && existingItem.an.trim().toUpperCase() === assetNumberInput;
+    });
+
+    if (isDuplicate) {
+        alert(`❌ ไม่สามารถบันทึกได้: เลขครุภัณฑ์ "${assetNumberInput}" มีอยู่ในระบบแล้ว!`);
+        document.getElementById('assetNumber').focus();
+        return; // หยุดการทำงานทันที
+    }
+
+    // 4. เตรียมข้อมูลบันทึก (ถ้าผ่านการตรวจสอบด้านบน)
+    const finalId = id || 'ASSET-' + Math.random().toString(36).substr(2, 8).toUpperCase();
     const data = {
-        an: document.getElementById('assetNumber').value.trim(),
-        n: document.getElementById('assetName').value.trim(),
+        an: assetNumberInput,
+        n: assetNameInput,
         i: document.getElementById('assetImage').value.trim(),
-        r: document.getElementById('assetRoom').value,
+        r: assetRoomInput,
         s: parseInt(document.getElementById('assetStatus').value),
         c: document.getElementById('assetCategory').value,
-        b: parseInt(document.getElementById('assetBorrowable')?.value || 1), // ระวังถ้าไม่ได้ใส่ใน modal แล้ว
+        b: parseInt(document.getElementById('assetBorrowable').value),
         u: auth.currentUser.email,
         at: new Date().toISOString()
     };
 
-    // ดึงข้อมูล Dynamic Fields
+    // เก็บ Custom Fields เหมือนเดิม
     let customFields = {};
     document.querySelectorAll('#dynamicFieldsContainer > div').forEach(row => {
         const key = row.querySelector('.field-key')?.value.trim();
@@ -358,16 +378,17 @@
         if (key) customFields[key] = { value: type === 'checkbox' ? valEl.checked : valEl.value, type };
     });
 
-    if (!data.an || !data.n || !data.r) return alert("กรุณากรอกข้อมูลให้ครบถ้วน");
-
+    // 5. บันทึกลง Firebase
     try {
-        await updateDoc(getInvDocRef(), { [`items.${id}`]: data });
-        await setDoc(doc(db, 'artifacts', appId, 'public_data', 'inventory_system', 'main', 'inventory_detail', 'all_inventorys', id), {
+        await updateDoc(getInvDocRef(), { [`items.${finalId}`]: data });
+        await setDoc(doc(db, 'artifacts', appId, 'public_data', 'inventory_system', 'main', 'inventory_detail', 'all_inventorys', finalId), {
             ...data, customFields, updatedAt: data.at
         }, { merge: true });
         closeModal();
-        alert("บันทึกข้อมูลเรียบร้อย");
-    } catch (err) { alert("เกิดข้อผิดพลาด: " + err.message); }
+        // alert("บันทึกข้อมูลเรียบร้อยแล้ว");
+    } catch (err) { 
+        alert("เกิดข้อผิดพลาดในการบันทึก: " + err.message); 
+    }
 };
 
 window.editAsset = async (id) => {
